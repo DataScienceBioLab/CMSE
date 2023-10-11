@@ -115,7 +115,7 @@ rpds-py==0.10.4
     # via
     #   jsonschema
     #   referencing
-scipy >= 1.7.1
+scipy == 1.7.1
 seaborn==0.13.0
     # via -r requirements.in
 six==1.16.0
