@@ -5,6 +5,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from ucimlrepo import fetch_ucirepo  # Ensure this module is available
+import scipy
 from scipy.stats import chi2_contingency, spearmanr, pearsonr
 
 
