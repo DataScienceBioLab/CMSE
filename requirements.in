@@ -1,0 +1,8 @@
+# requirements.in
+
+numpy
+pandas
+streamlit
+matplotlib
+seaborn
+ucimlrepo
