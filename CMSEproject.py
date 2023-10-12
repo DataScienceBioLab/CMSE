@@ -70,7 +70,7 @@ df = load_data()
 # Your categorizations here
 numeric_vars = ['age', 'rest_bp', 'chol', 'max_hr', 'st_depression']
 binary_vars = ['is_male', 'high_sugar', 'exercise_angina']
-multi_cat_vars = ['id', 'origin', 'chest_pain', 'rest_ecg', 'st_slope', 'thalass_type', 'art_blocks']
+multi_cat_vars = ['id', 'chest_pain', 'rest_ecg', 'st_slope', 'thalass_type', 'art_blocks']
 df[numeric_vars] = df[numeric_vars].apply(lambda x: (x - x.mean()) / x.std())
 
 
