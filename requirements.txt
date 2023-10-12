@@ -57,7 +57,7 @@ matplotlib==3.7.1
     #   seaborn
 mdurl==0.1.2
     # via markdown-it-py
-numpy==1.23.0
+numpy < 1.23.0
     # via
     #   -r requirements.in
     #   altair
