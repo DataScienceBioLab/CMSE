@@ -11,7 +11,7 @@ from scipy.stats import chi2_contingency, spearmanr, pearsonr
 @st.cache  # 👈 This function will be cached
 def load_data():
     # Concatenate features and targets into a single DataFrame
-    df = pd.read_csv('heart_disease_uci')
+    df = pd.read_csv('heart_disease_uci', nrows=303)
     # Your preprocessing logic here
     # after renaming the columns, I will be dealing with the Nans
     # I am dropping the num_fluoro column, as it is reduntant to art_block
