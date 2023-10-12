@@ -41,7 +41,7 @@ st.write("This app enables basic exploratory analysis of the heart disease datas
 
 # Showing the dataset
 st.subheader("Dataset")
-st.write(data.head())
+st.write(data.head(303))
 
 # Creating a sidebar for user inputs:
 st.sidebar.header('User Input Parameters')
