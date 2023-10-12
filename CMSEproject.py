@@ -16,7 +16,7 @@ def load_data():
     # after renaming the columns, I will be dealing with the Nans
     # I am dropping the num_fluoro column, as it is reduntant to art_block
     new_column_names = [
-    'id', 'age', 'origin', 'is_male', 'chest_pain', 'rest_bp', 'chol',
+    'age', 'is_male', 'chest_pain', 'rest_bp', 'chol',
     'high_sugar', 'rest_ecg', 'max_hr', 'exercise_angina',
     'st_depression', 'st_slope', 'num_fluoro',
     'thalass_type', 'art_blocks'
@@ -70,7 +70,7 @@ df = load_data()
 # Your categorizations here
 numeric_vars = ['age', 'rest_bp', 'chol', 'max_hr', 'st_depression']
 binary_vars = ['is_male', 'high_sugar', 'exercise_angina']
-multi_cat_vars = ['id', 'chest_pain', 'rest_ecg', 'st_slope', 'thalass_type', 'art_blocks']
+multi_cat_vars = ['chest_pain', 'rest_ecg', 'st_slope', 'thalass_type', 'art_blocks']
 df[numeric_vars] = df[numeric_vars].apply(lambda x: (x - x.mean()) / x.std())
 
 
