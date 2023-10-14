@@ -10,7 +10,7 @@ from scipy.stats import zscore
 # Fetch and preprocess the data
 @st.cache  # 👈 This function will be cached
 def load_data():
-        """
+    """
     Load and preprocess the heart disease dataset.
     
     - Fetch the dataset from the UCI ML Repository
@@ -23,23 +23,25 @@ def load_data():
     """
     # Concatenate features and targets into a single DataFrame
     df = pd.read_csv('heart_disease_uci.csv', nrows=303)
+    
     # Your preprocessing logic here
     # after renaming the columns, I will be dealing with the Nans
+    
     # I am dropping the num_fluoro column, as it is reduntant to art_block
     new_column_names = [
-    'age', 'is_male', 'chest_pain', 'rest_bp', 'chol',
-    'high_sugar', 'rest_ecg', 'max_hr', 'exercise_angina',
-    'st_depression', 'st_slope', 'num_fluoro',
-    'thalass_type', 'art_blocks'
+        'age', 'is_male', 'chest_pain', 'rest_bp', 'chol',
+        'high_sugar', 'rest_ecg', 'max_hr', 'exercise_angina',
+        'st_depression', 'st_slope', 'num_fluoro',
+        'thalass_type', 'art_blocks'
     ]
     df.columns = new_column_names
     
     df = df.drop('num_fluoro', axis = 1) # this is an effective duplicate of blockages
     df.at[87, 'thalass_type'] = 3.0 # patient 87 has no art blocks, went with mode for thalass when block == 0
     df.at[266, 'thalass_type'] = 7.0 # for this patient I compared other patietnts with blockage and exercise angiana and grabbed the mode
-
-
+    
     return df
+
 
 def calculate_correlations(var1, var2, data, binary_vars, numeric_vars, multi_cat_vars):
     """
