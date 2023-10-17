@@ -146,7 +146,7 @@ packaging==21.3
     #   bleach
     #   plotly
     #   streamlit
-pandas==0.25.3
+pandas==2.1.1
     # via
     #   -r requirements.in.txt
     #   altair
