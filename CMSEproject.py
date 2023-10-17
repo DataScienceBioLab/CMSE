@@ -1,14 +1,13 @@
-#streamlit project
+# streamlit project
 import streamlit as st
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 from scipy.stats import chi2_contingency, spearmanr, pearsonr
 from scipy.stats import zscore
+import plotly.express as px
+import plotly.graph_objects as go
 
-# Fetch and preprocess the data
-@st.cache  # 👈 This function will be cached
+
 def load_data():
     """
     Load and preprocess the heart disease dataset.
@@ -21,13 +20,9 @@ def load_data():
     Returns: 
     df: DataFrame - Preprocessed data
     """
-    # Concatenate features and targets into a single DataFrame
     df = pd.read_csv('heart_disease_uci.csv', nrows=303)
     
-    # Your preprocessing logic here
-    # after renaming the columns, I will be dealing with the Nans
-    
-    # I am dropping the num_fluoro column, as it is reduntant to art_block
+    # Rename columns and deal with NaN values
     new_column_names = [
         'age', 'is_male', 'chest_pain', 'rest_bp', 'chol',
         'high_sugar', 'rest_ecg', 'max_hr', 'exercise_angina',
@@ -36,12 +31,12 @@ def load_data():
     ]
     df.columns = new_column_names
     
-    df = df.drop('num_fluoro', axis = 1) # this is an effective duplicate of blockages
-    df.at[87, 'thalass_type'] = 3.0 # patient 87 has no art blocks, went with mode for thalass when block == 0
-    df.at[266, 'thalass_type'] = 7.0 # for this patient I compared other patietnts with blockage and exercise angiana and grabbed the mode
+    df = df.drop('num_fluoro', axis = 1)  # Duplicate of 'blockages'
+    # Imputing missing values based on certain criteria
+    df.at[87, 'thalass_type'] = 3.0  # Chosen based on mode for thalass when block == 0
+    df.at[266, 'thalass_type'] = 7.0  # Chosen by comparing other patients with blockage & exercise angina and getting the mode
     
     return df
-
 
 def calculate_correlations(var1, var2, data, binary_vars, numeric_vars, multi_cat_vars):
     """
@@ -57,20 +52,16 @@ def calculate_correlations(var1, var2, data, binary_vars, numeric_vars, multi_ca
     - corr: float - Calculated correlation coefficient
     - corr_type: str - Type of correlation coefficient ("S": Spearman, "P": Pearson, "C": Chi-square)
     """
-        # Binary variables
     if var1 in binary_vars and var2 in binary_vars:
         corr, _ = spearmanr(data[var1], data[var2])
         corr_type = "S"  # Spearman
-    # Continuous variables
     elif var1 in numeric_vars and var2 in numeric_vars:
         corr, _ = pearsonr(data[var1], data[var2])
         corr_type = "P"  # Pearson
-    # Categorical variables
     elif var1 in multi_cat_vars and var2 in multi_cat_vars:
         chi2, _, _, _ = chi2_contingency(pd.crosstab(data[var1], data[var2]))
         corr = np.sqrt(chi2 / (chi2 + data.shape[0]))
         corr_type = "C"  # Chi-square
-    # Other variable types
     else:
         corr, _ = pearsonr(data[var1], data[var2])
         corr_type = "P"  # Pearson
@@ -78,6 +69,7 @@ def calculate_correlations(var1, var2, data, binary_vars, numeric_vars, multi_ca
 
 # Load the preprocessed data
 data = load_data()
+
 
 # Introduce the dataset to the Streamlit user
 st.header("Data Overview")
@@ -119,15 +111,16 @@ selected_vars_desc = {
         - Value 3: Normal
         - Value 6: Fixed defect
         - Value 7: Reversible defect""",
-    'art_blocks': "Diagnosis of heart disease (>50% diameter narrowing: 1 = yes; 0 = no)."
+    'art_blocks': "Diagnosis of heart disease (Number of >50% diameter arteries: 0-3)."
 }
 
 # Displaying Descriptive Information about Variables to the User
 st.header("Variable Descriptions")
 # Iterating through the predefined variable descriptions and displaying them
 for var, desc in selected_vars_desc.items():
-    st.subheader(var)  # Variable name as subheader
-    st.write(desc)  # Description of the variable
+    st.subheader(var)
+    st.write(desc)
+
 
 # Categorization of Variables for Analytical Reference
 numeric_vars = ['age', 'rest_bp', 'chol', 'max_hr', 'st_depression']  # Continuous variables
@@ -146,210 +139,179 @@ st.write("This app enables basic exploratory analysis of the heart disease datas
 # Implementing a toggle to allow users to view the raw dataset
 if st.checkbox("Show Raw Data"):
     st.subheader("Dataset")
-    st.write(data.head())
+    st.write(data.head(303))
 
 # Providing Additional Comments and Context about the Dataset
 st.markdown("""### Comments on Dataset
 This dataset, sourced from the UCI ML Repo, contains 303 observations across 14 features. 
-One feature, `num_fluoro`, was removed due to redundancy and substantial missing data. The primary aim is to investigate predictors of arterial blockages, utilizing the remaining features.
+One feature, `num_fluoro`, was removed due to redundancy and missing data. The primary aim is to investigate predictors of arterial blockages, utilizing the remaining features.
 """)
 
-# Visualization Section
-st.subheader(f'Hiplot for Parallel Coordinates')
-
-# Initialize subplots to display visualizations related to the 'art_blocks' variable
-f, (a1, a2) = plt.subplots(ncols=1, nrows=2, figsize=(20, 10))
-
-# Creating Parallel Coordinate Plot with Original Data for 'art_blocks'
-# This visualization helps identify patterns and trends related to arterial blockages
-pd.plotting.parallel_coordinates(data, "art_blocks", ax=a1)
-a1.set_title("Parallel Coordinates for Arterial Blockages Without zscore")
-
-# Normalizing numerical columns for effective visualization and plotting with 'art_blocks'
-# This z-score normalization helps understand the relative position of each variable
-numeric_cols = data.select_dtypes(include=[np.number]).columns
-df_s = data[numeric_vars].apply(zscore)  # Apply z-score normalization
-df_s[cat_vars] = data[cat_vars]  # Append categorical variables without normalization
-pd.plotting.parallel_coordinates(df_s, "art_blocks", ax=a2)
-a2.set_title("Parallel Coordinates for Arterial Blockages With zscore")
-# Display the matplotlib figure in the Streamlit app
-st.pyplot(f)
-
-# Violin Plots of Numeric Variables
-st.subheader('Violin Plots for Numeric Variables')
-
-# Set up the matplotlib figure with 4 subplots
-fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
-
-# Specify variable groups
 # These are the variables for which violin plots will be generated
 group1 = ['chol']
 group2 = ['age']
 group3 = ['st_depression']
 group4 = ['rest_bp', 'max_hr']
+bin_width = 30
 
-# Prepare data for the violin plot and plot
-# Loop through the groups and corresponding axes to create plots
-for group, ax in zip([group1, group2, group3, group4], [ax1, ax2, ax3, ax4]):
-    # Melt the data to long format, which is suitable for seaborn
-    data_melted = pd.melt(data, id_vars='art_blocks', value_vars=group)
-    
-    # Creating a violin plot using seaborn. Hue is used to differentiate data based on 'art_blocks'
-    sns.violinplot(x='variable', y='value', hue='art_blocks', data=data_melted,
-                   split=False, inner="quart", linewidth=1.3, palette="muted", ax=ax)
-    
-    # Customize the plot appearance
-    # Set title, x and y axis labels, and legend details
-    ax.set_title('Violin Plot of ' + ', '.join(group) + ' by Arterial Blockages')
-    ax.set_xlabel('Variable')
-    ax.set_ylabel('Value')
-    ax.legend(title='Arterial Blockages', title_fontsize='13', fontsize='11')
-
-# Adjust the layout to avoid overlap
-plt.tight_layout()
-
-# Display the plot in the Streamlit app
-st.pyplot(fig)
-
-# Creating a sidebar for user inputs:
-# Introducing a header for this section in the sidebar
-st.sidebar.header('User Input Parameters')
-
-# Create a slider in the sidebar:
-# Enabling the user to select a feature to visualize through a dropdown menu
-feature = st.sidebar.selectbox(
-    'Select a categorical variable to visualize with a histogram',
-    all_vars  # List containing all variable names
-)
-
-# Visualizations based on user input:
-# Displaying a subheader that dynamically updates based on the user-selected feature
-st.subheader(f'Distribution of {feature}')
-
-# Optional: User input for bin width in the histogram
-# Enabling the user to select the bin width of the histogram via a slider
-bin_width = st.sidebar.slider('Select bin width for the histogram', min_value=5, max_value=100, value=20)
-
-# Creating a figure and axis object to plot the histogram using Seaborn
-fig, ax = plt.subplots(figsize=(6, 4))
-
-# Plotting a histogram of the selected feature with the specified bin width
-sns.histplot(data[feature], bins=bin_width, kde=False)  # kde=False means no density curve will be displayed
-plt.xlabel(feature)  # Labeling the x-axis with the selected feature name
-plt.ylabel('Count')  # Labeling the y-axis as 'Count'
-plt.title(f'Distribution of {feature} in the dataset')  # Adding a title to the plot
-
-# Displaying the plot in the Streamlit app
-st.pyplot(fig)
-
-# Providing additional information to the user about the visualization
+# Introduce the dataset to the Streamlit user
+st.header("Data Overview")
 st.write("""
-The histogram above represents the distribution of the selected categorical variable in the dataset. 
-Adjust the bin width in the sidebar to change the granularity of the displayed data.
-""")
-# Correlation heatmap
-# Displaying a subheader for the correlation heatmap section
-st.subheader("Correlation Heatmap")
-
-# Creating a figure for plotting
-fig, ax = plt.subplots(figsize=(12, 8))
-
-# Using seaborn to plot a heatmap of correlations between numerical variables in the dataset
-# Annotating each cell with the respective correlation coefficient, formatted to 2 decimal places
-sns.heatmap(data.corr(), annot=True, fmt=".2f", cmap="coolwarm", center=0, ax=ax)
-
-# Adding a title to the plot
-plt.title('Correlation Heatmap of Numeric Variables')
-
-# Displaying the heatmap in the Streamlit app
-st.pyplot(fig)
-
-# Providing descriptive text to give context to the heatmap
-st.write("""
-The heatmap visualizes the correlation between different numerical variables in the dataset. 
-Positive correlations are displayed in warm colors, while negative correlations are in cool colors. 
-Values close to 1 or -1 represent strong positive or negative correlations, respectively.
+This dataset provides a wide variety of medical attributes, aiming to predict 
+the presence of heart disease. For our exploration, we particularly focus on 14 
+key attributes, exploring their relationship and impact on the diagnosis of 
+heart disease. These attributes range from demographic information, such as 
+age and sex, to more specific medical indicators, like cholesterol levels, 
+resting blood pressure, and different types of test results.
 """)
 
-# Placeholder for the correlation matrix and type matrix
-# Initializing matrices to store the correlation coefficients and types
-corr_matrix = pd.DataFrame(np.zeros((len(data.columns), len(data.columns))), columns=data.columns, index=data.columns)
-corr_type_matrix = corr_matrix.copy().astype(str)  
-
-# Filling the correlation matrices
-# Looping through each pair of variables to calculate correlations
-for var1 in data.columns:
-    for var2 in data.columns:
-        # `calculate_correlations` assumed to be a user-defined function that returns the correlation and its type
-        corr, corr_type = calculate_correlations(var1, var2, data, binary_vars, numeric_vars, multi_cat_vars)
-        corr_matrix.loc[var1, var2] = corr  # Storing the correlation coefficient
-        corr_type_matrix.loc[var1, var2] = corr_type  # Storing the correlation type
-
-# Streamlit Display
-# Displaying titles and introduction for the correlation analysis in the Streamlit app
-st.title('Heart Disease Exploratory Analysis')
-st.write('Correlation heatmaps representing relationships and correlation types between variables.')
-
-# Plotting the Correlation Values
-# Creating a figure to plot the correlation coefficients
-fig, ax = plt.subplots(figsize=(12, 10))  
-
-# Plotting the heatmap of correlation coefficients
-sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", vmin=-1, vmax=1, ax=ax, cbar_kws={'label': 'Correlation Coefficient'})
-
-# Adding a title to the plot
-plt.title("Correlation Coefficients")
-
-# Displaying the plot in the Streamlit app
-st.pyplot(fig)
-
-# Providing explanatory text for the above heatmap
-st.write('The above heatmap shows the correlation coefficients between variables using different correlation methods.')
-
-# Plotting the Correlation Types
-# Creating a figure to plot the correlation types
-fig, ax = plt.subplots(figsize=(12, 10))
-
-# Plotting a heatmap to visually display correlation types. Actual heatmap values are zero, annotation is used to display correlation types.
-sns.heatmap(pd.DataFrame(np.zeros(corr_type_matrix.shape), columns=data.columns, index=data.columns), annot=corr_type_matrix, fmt="", cmap="Blues", cbar=False, ax=ax)
-
-# Adding a title to the plot
-plt.title("Correlation Types")
-
-# Displaying the plot in the Streamlit app
-st.pyplot(fig)
-
-# Providing a legend for correlation types
-st.write('Correlation Types: S = Spearman, P = Pearson, C = Chi-square')
 
 
 
-# Scatter plots
-st.sidebar.header('Scatter Plot Parameters')
+# ... [Previous code for setup]
 
-# Selectboxes for choosing variables for scatter plot with default values set
-x_axis = st.sidebar.selectbox('Select variable for x-axis', numeric_vars, index=0)
-y_axis = st.sidebar.selectbox('Select variable for y-axis', numeric_vars, index=3)
-color_var = st.sidebar.selectbox('Select variable for color', multi_cat_vars, index=multi_cat_vars.index('art_blocks'))
-shape_var = st.sidebar.selectbox('Select variable for shape', binary_vars, index=binary_vars.index('is_male'))
+# 1. Compute z-scores for numeric variables
+for var in numeric_vars:
+    data[f"{var}_zscore"] = (data[var] - np.mean(data[var])) / np.std(data[var])
 
-# Filter warnings from Seaborn
-st.set_option('deprecation.showPyplotGlobalUse', False)
+# Use checkboxes for selection of variable groups but style them like toggles
+st.write("Select Variables for Display:")
+include_binary_vars = st.checkbox('Include Binary Variables', value=True, key="binary_vars")
+include_multi_cat_vars = st.checkbox('Include Multi-category Variables', value=True, key="multi_cat_vars")
+include_numeric_vars = st.checkbox('Include Numeric Variables', value=True, key="numeric_vars")
 
-# Create scatter plot
-st.subheader(f'Scatter plot of {y_axis} vs {x_axis}')
-plt.figure(figsize=(12, 8))
+# Initialize empty list for selected variables
+selected_vars = []
 
-# Using seaborn to create a scatterplot with hue (color) and style (shape) defined by categorical variables
-sns.scatterplot(data=data, x=x_axis, y=y_axis, hue=color_var, style=shape_var, palette="deep")
+# Append to the selected variables list based on checked boxes
+if include_binary_vars:
+    selected_vars += binary_vars
+if include_multi_cat_vars:
+    selected_vars += multi_cat_vars
+if include_numeric_vars:
+    selected_vars += numeric_vars
 
-# Customize plot features
-plt.title(f'{y_axis} vs {x_axis} colored by {color_var} and shaped by {shape_var}')
-plt.xlabel(x_axis)
-plt.ylabel(y_axis)
-plt.legend(title=f'{color_var}/{shape_var}', bbox_to_anchor=(1, 1), loc='upper left')
+# If numeric_vars are selected, show the z-score checkbox
+use_zscore = False
+if include_numeric_vars:
+    use_zscore = st.checkbox('Use Z-Scored Variables for Numeric Data?')
 
-# Display plot in Streamlit
-st.pyplot()
+    if use_zscore:
+        # Replace the selected numeric variables with their z-scored versions
+        for var in numeric_vars:
+            selected_vars[selected_vars.index(var)] = f"{var}_zscore"
+
+# Create the parallel coordinates visualization only if at least one group of variables is selected
+if selected_vars:
+    fig = px.parallel_coordinates(data, 
+                                  dimensions=selected_vars,
+                                  color="art_blocks",
+                                  labels={col: col for col in selected_vars},
+                                  color_continuous_scale=px.colors.diverging.Tealrose)
+
+    # Display the figure with increased size
+    st.plotly_chart(fig, use_container_width=True, height=800)
+else:
+    st.write("Please select at least one group of variables to display the graph.")
+
+# ... [rest of the code]
+
+
+
+
+
+
+# Define the color scale based on the unique values in art_blocks
+unique_blocks = sorted(data['art_blocks'].unique())
+color_scale = px.colors.qualitative.Plotly[:len(unique_blocks)]
+
+# Map each unique block to its corresponding color
+color_map = dict(zip(unique_blocks, color_scale))
+
+st.header("Violin Plots")
+st.markdown("These plots provide insights into the distribution of different variables across arterial blockage categories.")
+# Violin Plots
+for group in [group1, group2, group3, group4]:
+    for feature in group:
+        fig = px.violin(data, y=feature, x="art_blocks", color="art_blocks", 
+                        box=True, points="all", color_discrete_map=color_map)
+        st.plotly_chart(fig)
+
+
+# 1. Let users select the feature for the x-axis of the histogram
+feature = st.selectbox("Select a feature for the histogram x-axis:", multi_cat_vars + binary_vars)
+
+# 2. Checkbox to allow users to enable faceting
+enable_faceting = st.checkbox('Enable faceting?')
+
+if enable_faceting:
+    # 3. Let users select the feature for faceting when checkbox is ticked
+    # Defaulting to "art_blocks" by finding its index in the list
+    default_index = multi_cat_vars.index('art_blocks')
+    facet_feature = st.selectbox("Select a feature for faceting:", multi_cat_vars + binary_vars, index=default_index)
+    
+    # 4. Create the histogram faceted by the chosen feature
+    fig = px.histogram(data, x=feature, nbins=int(data[feature].max() / bin_width), facet_col=facet_feature, color=facet_feature)
+else:
+    # 5. Create the histogram without faceting if checkbox is not ticked
+    fig = px.histogram(data, x=feature, nbins=int(data[feature].max() / bin_width))
+
+st.plotly_chart(fig)
+
+
+all_vars = numeric_vars + binary_vars + multi_cat_vars
+
+# Initialize matrix for correlation values
+correlation_value_df = pd.DataFrame(index=all_vars, columns=all_vars)
+
+spearman_variables = set()
+chi_square_variables = set()
+
+for i, var1 in enumerate(all_vars):
+    for j, var2 in enumerate(all_vars):
+        if i > j:  # Only lower triangle
+            corr_val, corr_type = calculate_correlations(var1, var2, data, binary_vars, numeric_vars, multi_cat_vars)
+            correlation_value_df.loc[var1, var2] = corr_val
+            
+            # Collect variables that used Spearman or Chi-square
+            if corr_type == 'S':
+                spearman_variables.add(var1)
+                spearman_variables.add(var2)
+            elif corr_type == 'C':
+                chi_square_variables.add(var1)
+                chi_square_variables.add(var2)
+        else:
+            correlation_value_df.loc[var1, var2] = np.nan
+
+# Create heatmap for correlation values
+fig = go.Figure()
+
+heatmap = go.Heatmap(z=correlation_value_df.values, x=all_vars, y=all_vars,
+                     colorscale="RdBu_r", zmin=-1, zmax=1)
+
+fig.add_trace(heatmap)
+fig.update_layout(title="Lower Triangle Correlation Matrix")
+
+st.plotly_chart(fig, use_container_width=True)
+
+# Display the variables that used Spearman or Chi-square
+st.write("Variables that used Spearman coefficient:", ', '.join(sorted(spearman_variables)))
+st.write("Variables that used Chi-square coefficient:", ', '.join(sorted(chi_square_variables)))
+
+
+
+# Selection widgets
+x_var = st.selectbox('Select X variable:', options=multi_cat_vars + numeric_vars)
+y_var = st.selectbox('Select Y variable:', options=multi_cat_vars + numeric_vars)
+color_var = st.selectbox('Select variable for color:', options=cat_vars)
+shape_var = st.selectbox('Select variable for shape:', options=binary_vars)
+
+# Plot scatter plot
+fig = px.scatter(data, x=x_var, y=y_var, color=color_var, symbol=shape_var, 
+                 title=f'Scatter plot of {x_var} vs. {y_var}',
+                 labels={color_var: f'Color by {color_var}', shape_var: f'Shape by {shape_var}'},
+                 color_discrete_sequence=px.colors.qualitative.Pastel)
+
+st.plotly_chart(fig)
 
 
