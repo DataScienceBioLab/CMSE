@@ -6,6 +6,7 @@ from scipy.stats import chi2_contingency, spearmanr, pearsonr
 from scipy.stats import zscore
 import plotly.express as px
 import plotly.graph_objects as go
+from streamlit_plotly_events import plotly_events
 
 
 def load_data():
@@ -85,35 +86,34 @@ resting blood pressure, and different types of test results.
 
 # Descriptions of selected variables
 selected_vars_desc = {
-    'age': "Age in years.",
-    'is_male': "Sex of the individual (1 = male; 0 = female).",
-    'chest_pain': """Type of chest pain experienced:
-        - Value 1: Typical angina
-        - Value 2: Atypical angina
-        - Value 3: Non-anginal pain
-        - Value 4: Asymptomatic""",
-    'rest_bp': "Resting blood pressure (in mm Hg upon hospital admission).",
-    'chol': "Serum cholesterol level (in mg/dl).",
-    'high_sugar': "Fasting blood sugar > 120 mg/dl (1 = true; 0 = false).",
-    'rest_ecg': """Resting electrocardiographic results:
+    'age': "The patient's age.",
+    'is_male': "Whether the patient is male (1) or female (0).",
+    'chest_pain': """The kind of chest discomfort the patient feels:
+        - Value 1: Typical heart-related pain
+        - Value 2: Less common heart-related pain
+        - Value 3: Pain not from the heart
+        - Value 4: No discomfort at all""",
+    'rest_bp': "Blood pressure when the patient first came in.",
+    'chol': "Level of cholesterol in the blood.",
+    'high_sugar': "If sugar level in the blood was high before breakfast (1 = yes; 0 = no).",
+    'rest_ecg': """Heart's electrical activity at rest:
         - Value 0: Normal
-        - Value 1: ST-T wave abnormality
-        - Value 2: Probable or definite left ventricular hypertrophy""",
-    'max_hr': "Maximum heart rate achieved during a stress test.",
-    'exercise_angina': "Exercise-induced angina (1 = yes; 0 = no).",
-    'st_depression': "ST depression induced by exercise relative to rest.",
-    'st_slope': """The slope of the peak exercise ST segment:
-        - Value 1: Upsloping
-        - Value 2: Flat
-        - Value 3: Downsloping""",
-    'num_fluoro': "Number of major vessels colored by fluoroscopy (0-3).",
-    'thalass_type': """Thalassemia type:
+        - Value 1: Slight abnormality
+        - Value 2: Possible thickening of heart muscle""",
+    'max_hr': "Highest heart rate during a physical test.",
+    'exercise_angina': "Whether exercise caused heart-related discomfort (1 = yes; 0 = no).",
+    'st_depression': "Change in the heart's activity during exercise compared to rest.",
+    'st_slope': """How a specific part of the heart's activity changes with exercise:
+        - Value 1: Increases normally
+        - Value 2: Stays flat
+        - Value 3: Decreases""",
+    'num_fluoro': "Number of major blood vessels seen in a special X-ray (from 0-3).",
+    'thalass_type': """Type of a blood condition:
         - Value 3: Normal
-        - Value 6: Fixed defect
-        - Value 7: Reversible defect""",
-    'art_blocks': "Diagnosis of heart disease (Number of >50% diameter arteries: 0-3)."
+        - Value 6: A stable issue  (long term damage)
+        - Value 7: A temporary issue (can heal)""",
+    'art_blocks': "Number of major arteries blocked (from 0-3). More blockage can mean higher risk."
 }
-
 # Displaying Descriptive Information about Variables to the User
 st.header("Variable Descriptions")
 # Iterating through the predefined variable descriptions and displaying them
@@ -142,9 +142,15 @@ if st.checkbox("Show Raw Data"):
     st.write(data.head(303))
 
 # Providing Additional Comments and Context about the Dataset
-st.markdown("""### Comments on Dataset
+st.markdown("""
+### Comments on Dataset
 This dataset, sourced from the UCI ML Repo, contains 303 observations across 14 features. 
 One feature, `num_fluoro`, was removed due to redundancy and missing data. The primary aim is to investigate predictors of arterial blockages, utilizing the remaining features.
+
+#### Notes on Data Cleaning:
+- Some missing data was filled to make the dataset more comprehensive.
+- For the row with index 87, the missing value in `thalass_type` was filled with 3.0. This was based on the most common value (mode) for `thalass_type` when there's no blockage (`art_block == 0`).
+- For the row with index 266, the missing value in `thalass_type` was set to 7.0. This decision was made by comparing other patients with arterial blockage & exercise-induced discomfort. The mode of `thalass_type` in such cases was 7.0.
 """)
 
 # These are the variables for which violin plots will be generated
@@ -166,13 +172,12 @@ resting blood pressure, and different types of test results.
 """)
 
 
-
-
-# ... [Previous code for setup]
-
 # 1. Compute z-scores for numeric variables
 for var in numeric_vars:
     data[f"{var}_zscore"] = (data[var] - np.mean(data[var])) / np.std(data[var])
+
+# Provide information to users about variable selection and z-score normalization
+st.info("You can choose which type of variables to display in the parallel coordinates graph. If you select numeric variables, you'll also have the option to display them using z-scores, which normalize the data around a mean of 0 and a standard deviation of 1.")
 
 # Use checkboxes for selection of variable groups but style them like toggles
 st.write("Select Variables for Display:")
@@ -208,18 +213,13 @@ if selected_vars:
                                   color="art_blocks",
                                   labels={col: col for col in selected_vars},
                                   color_continuous_scale=px.colors.diverging.Tealrose)
-
+    
+    st.info("The parallel coordinates graph below is interactive. You can hover over individual lines to see detailed data points and use the toolbar on the top right to zoom, pan, and reset the view.")
+    
     # Display the figure with increased size
     st.plotly_chart(fig, use_container_width=True, height=800)
 else:
     st.write("Please select at least one group of variables to display the graph.")
-
-# ... [rest of the code]
-
-
-
-
-
 
 # Define the color scale based on the unique values in art_blocks
 unique_blocks = sorted(data['art_blocks'].unique())
@@ -229,7 +229,7 @@ color_scale = px.colors.qualitative.Plotly[:len(unique_blocks)]
 color_map = dict(zip(unique_blocks, color_scale))
 
 st.header("Violin Plots")
-st.markdown("These plots provide insights into the distribution of different variables across arterial blockage categories.")
+st.info("Below, you'll find a series of violin plots. They show how different variables are distributed across arterial blockage categories. You can interact with each plot to understand the distribution better.")
 # Violin Plots
 for group in [group1, group2, group3, group4]:
     for feature in group:
@@ -237,7 +237,9 @@ for group in [group1, group2, group3, group4]:
                         box=True, points="all", color_discrete_map=color_map)
         st.plotly_chart(fig)
 
-
+# Guide for the Histogram selection
+st.markdown("""### Histograms
+Below, you can customize a histogram. First, select the feature for the x-axis. Optionally, you can enable faceting to divide the histogram based on another feature.""")
 # 1. Let users select the feature for the x-axis of the histogram
 feature = st.selectbox("Select a feature for the histogram x-axis:", multi_cat_vars + binary_vars)
 
@@ -261,8 +263,13 @@ st.plotly_chart(fig)
 
 all_vars = numeric_vars + binary_vars + multi_cat_vars
 
-# Initialize matrix for correlation values
+
 correlation_value_df = pd.DataFrame(index=all_vars, columns=all_vars)
+
+# Correlation Matrix
+st.markdown("""### Correlation Matrix
+This heatmap displays correlations between different variables. Dark blue or red indicates strong correlation, while white suggests little to no correlation. Click on a heatmap cell to see detailed scatter plots for the corresponding variable pair.""")
+
 
 spearman_variables = set()
 chi_square_variables = set()
@@ -292,26 +299,70 @@ heatmap = go.Heatmap(z=correlation_value_df.values, x=all_vars, y=all_vars,
 fig.add_trace(heatmap)
 fig.update_layout(title="Lower Triangle Correlation Matrix")
 
-st.plotly_chart(fig, use_container_width=True)
+# Using st_plotly_events for capturing the click event on the heatmap
+click_data = plotly_events(fig)
 
-# Display the variables that used Spearman or Chi-square
-st.write("Variables that used Spearman coefficient:", ', '.join(sorted(spearman_variables)))
-st.write("Variables that used Chi-square coefficient:", ', '.join(sorted(chi_square_variables)))
+if click_data:
+    point_data = click_data[0]
+    x_var_init, y_var_init = point_data['x'], point_data['y']
+else:
+    x_var_init, y_var_init = multi_cat_vars[0], numeric_vars[0]  # Default initial values
+
+combined_vars = multi_cat_vars + numeric_vars
+
+# Scatter plot controls and description
+st.markdown("""### Scatter Plot
+After selecting variables in the correlation matrix, you can further customize the scatter plot below. Choose variables for the x and y axes, color, and shape. You also have options to normalize or standardize the numeric data. If desired, a regression line can be added to the scatter plot.""")
 
 
+# Check if x_var_init and y_var_init exist in the combined list
+x_var_index = combined_vars.index(x_var_init) if x_var_init in combined_vars else 0
+y_var_index = combined_vars.index(y_var_init) if y_var_init in combined_vars else 0
 
-# Selection widgets
-x_var = st.selectbox('Select X variable:', options=multi_cat_vars + numeric_vars)
-y_var = st.selectbox('Select Y variable:', options=multi_cat_vars + numeric_vars)
+# Selection widgets with updated index calculation
+x_var = st.selectbox('Select X variable:', options=combined_vars, index=x_var_index)
+y_var = st.selectbox('Select Y variable:', options=combined_vars, index=y_var_index)
 color_var = st.selectbox('Select variable for color:', options=cat_vars)
 shape_var = st.selectbox('Select variable for shape:', options=binary_vars)
 
-# Plot scatter plot
-fig = px.scatter(data, x=x_var, y=y_var, color=color_var, symbol=shape_var, 
-                 title=f'Scatter plot of {x_var} vs. {y_var}',
-                 labels={color_var: f'Color by {color_var}', shape_var: f'Shape by {shape_var}'},
-                 color_discrete_sequence=px.colors.qualitative.Pastel)
+# Dropdown for regression type
+regression_type = st.selectbox(
+    'Select regression type:',
+    options=['None', 'ols', 'lowess']
+)
+
+# Toggle for z-scored/normed values
+z_scored = st.button("Z-Score Numeric Variables")
+normed = st.button("Normalize Numeric Variables")
+
+if z_scored:
+    for col in numeric_vars:
+        data[col] = (data[col] - data[col].mean()) / data[col].std()
+elif normed:
+    for col in numeric_vars:
+        data[col] = (data[col] - data[col].min()) / (data[col].max() - data[col].min())
+
+# Scatter plot with regression line
+fig = px.scatter(
+    data, x=x_var, y=y_var, color=color_var, symbol=shape_var,
+    trendline=regression_type if regression_type != 'None' else None,
+    title=f'Scatter plot of {x_var} vs. {y_var}',
+    labels={color_var: f'Color by {color_var}', shape_var: f'Shape by {shape_var}'},
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
+
+# Adjust legend
+fig.update_layout(
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01
+    )
+)
 
 st.plotly_chart(fig)
+
+
 
 
