@@ -238,7 +238,7 @@ for group in [group1, group2, group3, group4]:
         st.plotly_chart(fig)
 
 # Guide for the Histogram selection
-st.markdown("""### Histograms
+st.info("""### Histograms
 Below, you can customize a histogram. First, select the feature for the x-axis. Optionally, you can enable faceting to divide the histogram based on another feature.""")
 # 1. Let users select the feature for the x-axis of the histogram
 feature = st.selectbox("Select a feature for the histogram x-axis:", multi_cat_vars + binary_vars)
@@ -267,7 +267,7 @@ all_vars = numeric_vars + binary_vars + multi_cat_vars
 correlation_value_df = pd.DataFrame(index=all_vars, columns=all_vars)
 
 # Correlation Matrix
-st.markdown("""### Correlation Matrix
+st.info("""### Correlation Matrix
 This heatmap displays correlations between different variables. Dark blue or red indicates strong correlation, while white suggests little to no correlation. Click on a heatmap cell to see detailed scatter plots for the corresponding variable pair.""")
 
 
@@ -311,7 +311,7 @@ else:
 combined_vars = multi_cat_vars + numeric_vars
 
 # Scatter plot controls and description
-st.markdown("""### Scatter Plot
+st.info("""### Scatter Plot
 After selecting variables in the correlation matrix, you can further customize the scatter plot below. Choose variables for the x and y axes, color, and shape. You also have options to normalize or standardize the numeric data. If desired, a regression line can be added to the scatter plot.""")
 
 
