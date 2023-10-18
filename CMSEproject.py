@@ -112,7 +112,7 @@ selected_vars_desc = {
         - Value 3: Normal
         - Value 6: A stable issue  (long term damage)
         - Value 7: A temporary issue (can heal)""",
-    'art_blocks': "Number of major arteries blocked (from 0-3). More blockage can mean higher risk."
+    'art_blocks': "Number of major arteries blocked (from 0-4). More blockage can mean higher risk."
 }
 # Displaying Descriptive Information about Variables to the User
 st.header("Variable Descriptions")
