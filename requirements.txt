@@ -101,6 +101,7 @@ six==1.16.0
     # via python-dateutil
 smmap==5.0.1
     # via gitdb
+statsmodels==0.13.1
 streamlit==1.27.2
     # via
     #   -r requirements.in
